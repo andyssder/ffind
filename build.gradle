@@ -1,0 +1,76 @@
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+
+plugins {
+    id("java")
+    id("org.jetbrains.intellij.platform") version "2.5.0"
+}
+
+group = "io.github.andyssder.ffind"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+dependencies {
+    intellijPlatform {
+        intellijIdeaCommunity("2024.3.5")
+        bundledPlugin("com.intellij.java")
+        testFramework(TestFrameworkType.Plugin.Java.INSTANCE)
+    }
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.11.0'
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = "231"
+            untilBuild = "243.*"
+        }
+    }
+    pluginVerification {
+        ides {
+            recommended()
+        }
+    }
+}
+
+test {
+    useJUnit()
+
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        exceptionFormat "full"
+        showCauses true
+        showStackTraces true
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+def changelogText = file('CHANGELOG.md').text
+
+patchPluginXml {
+    changeNotes = changelogText
+}
+
+signPlugin {
+    certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+    privateKey = providers.environmentVariable("PRIVATE_KEY")
+    password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+}
+
+publishPlugin {
+    token = providers.environmentVariable("PUBLISH_TOKEN")
+}

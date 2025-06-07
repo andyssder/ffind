@@ -1,0 +1,76 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin require-restart="false" implementation-detail="false">
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>io.github.andyssder.ffind</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>FindInCopy</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="yuanhanghsu@gmail.com" >andyssder</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+
+    <version>${project.version}</version>
+
+    <change-notes></change-notes>
+
+    <description><![CDATA[
+        Enhanced Find in Copy Methods: Extends IntelliJ's Find Usages to detect property references inside copy methods.
+
+        <H2><b>Enhanced Find in Copy Methods</b></H2>
+        <p>🔍 Extends IntelliJ's Find Usages to detect property references inside:</p>
+        <p>• BeanUtil.copyProperties() (Spring supported by default)<br/>
+        • Any custom copy method (e.g. MyCopier.copyData())</p>
+        <p>💡 Example: Finds usage of user.Name in:<br/>
+        &nbsp;&nbsp;BeanUtil.copyProperties(user, dto)<br/>
+        &nbsp;&nbsp;CustomMapper.copy(user, target)</p>
+        <p>⚙️ Configure at: Settings > Tools > FindInCopy</p>
+        <br/>
+        <p>🔍 扩展IDEA的引用查找功能，检测隐藏在以下方法中的属性引用：</p>
+        <p>• Spring的BeanUtil.copyProperties(source, target) (默认支持)<br/>
+        • 自定义copy方法 (如 MyCopier.copyData(source, target))</p>
+        <p>💡 示例: 可检测以下代码中的user.Name引用:<br/>
+        &nbsp;&nbsp;BeanUtil.copyProperties(user, dto)<br/>
+        &nbsp;&nbsp;CustomMapper.copy(user, target)</p>
+        <p>⚙️ 配置路径：设置 > 工具 > FindInCopy</p>
+        <br/>
+
+    ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!--customUsageSearcher  and findUsagesHandlerFactory  just choose one -->
+        <customUsageSearcher implementation="io.github.andyssder.ffind.handler.FindCopyUsageSearcher"/>
+        <!--<findUsagesHandlerFactory implementation="handler.io.github.andyssder.ffind.FindCopyUsagesHandlerFactory"/>-->
+
+        <applicationService serviceImplementation="io.github.andyssder.ffind.model.state.MethodConfigSetting"/>
+        <applicationService serviceImplementation="io.github.andyssder.ffind.model.state.GeneralSetting"/>
+
+        <lang.elementManipulator
+                implementationClass="io.github.andyssder.ffind.handler.MethodCallExpressionManipulator"
+                forClass="com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl"/>
+        <applicationConfigurable instance="io.github.andyssder.ffind.ui.setting.GeneralConfigurable"
+                                 parentId="tools"
+                                 displayName="FindInCopy Setting"
+                                 id="ffind.general.settings"/>
+
+        <applicationConfigurable
+                instance="io.github.andyssder.ffind.ui.setting.MethodConfigurable"
+                parentId="ffind.general.settings"
+                displayName="Method Config"
+                id="ffind.method.config"/>
+
+    </extensions>
+
+</idea-plugin>
