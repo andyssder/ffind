@@ -13,6 +13,7 @@ import com.intellij.openapi.application.Application;
 import com.intellij.psi.*;
 import com.intellij.testFramework.ServiceContainerUtil;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
+import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -136,7 +137,7 @@ public class FiledCopyUsageInfoDetectorTest extends LightJavaCodeInsightFixtureT
         expected.add(createRealUsageInfos("ReadReferenceClass", testField, ReferenceType.INDIRECT_READ, methodConfig, "excludeField"));
         expected.add(createRealUsageInfos("WriteReferenceClass", testField, ReferenceType.INDIRECT_WRITE, methodConfig, "excludeField"));
         List<CopyUsageInfo> actual = detector.findCopyUsageInfo(testField,  null);
-        assertEquals("Should return same usage infos", expected, actual);
+        assertTrue("Should return same usage infos",  CollectionUtils.isEqualCollection(expected, actual));
 
         PsiField excludeField = createTestField("ExcludeClass", "excludeField");
         createRealUsageInfos("ExcludeReadReferenceClass", excludeField, ReferenceType.INDIRECT_READ, methodConfig, "excludeField");
@@ -167,7 +168,7 @@ public class FiledCopyUsageInfoDetectorTest extends LightJavaCodeInsightFixtureT
         expected.add(createRealUsageInfos("IncludeReadReferenceClass", testField, ReferenceType.INDIRECT_READ, methodConfig, "includeField"));
         expected.add(createRealUsageInfos("IncludeWriteReferenceClass", testField, ReferenceType.INDIRECT_WRITE, methodConfig, "includeField"));
         actual = detector.findCopyUsageInfo(testField,  null);
-        assertEquals("Should return same usage infos", expected, actual);
+        assertTrue("Should return same usage infos",  CollectionUtils.isEqualCollection(expected, actual));
 
     }
 

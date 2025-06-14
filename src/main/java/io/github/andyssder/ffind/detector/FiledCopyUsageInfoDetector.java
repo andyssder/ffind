@@ -10,10 +10,8 @@ import io.github.andyssder.ffind.model.state.GeneralSetting;
 import com.intellij.find.findUsages.FindUsagesOptions;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.psi.*;
 import io.github.andyssder.ffind.model.state.MethodConfigSetting;
-import com.intellij.psi.util.PsiTreeUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -43,30 +41,16 @@ public class FiledCopyUsageInfoDetector implements CopyUsageInfoDetector {
         List<CopyUsageInfo> result = new ArrayList<>();
 
         Project project = field.getProject();
-        ReadAction.compute(() -> ProjectRootManager.getInstance(project)
-                .getFileIndex()
-                .iterateContent(file -> {
-                    if (!file.getName().endsWith(".java")) {
-                        return true;
-                    }
-                    PsiJavaFile psiFile = (PsiJavaFile) PsiManager.getInstance(project).findFile(file);
-                    if (psiFile == null) {
-                        return true;
-                    }
-                    PsiTreeUtil.processElements(psiFile, element -> {
-                        if (element instanceof PsiMethodCallExpression call) {
-                            List<MethodConfig> methodConfigs = MethodConfigSetting.getInstance().getMethodConfigs();
-                            methodConfigs.forEach(config -> {
-                                if (MethodSignatureMatcher.matches(call.resolveMethod(), config)) {
-                                    processMatchedCall(call, field, config, result);
-                                }
-                            });
-                        }
-                        return true;
-                    });
+        ReadAction.compute(() -> {
+            List<MethodConfig> methodConfigs = MethodConfigSetting.getInstance().getMethodConfigs();
+            methodConfigs.forEach(methodConfig -> {
+                List<PsiMethodCallExpression> psiMethodCallExpressionList = CopyMethodReferenceDetector.findMethodCalls(project, methodConfig);
+                psiMethodCallExpressionList.forEach(methodCallExpression ->
+                        processMatchedCall(methodCallExpression, field, methodConfig, result));
 
-                    return true;
-                }));
+            });
+            return true;
+        });
         setCache(field, result);
         return result;
     }
@@ -97,11 +81,11 @@ public class FiledCopyUsageInfoDetector implements CopyUsageInfoDetector {
         }
     }
 
-    
+
     private void processMatchedCall(PsiMethodCallExpression matchedCall,
-                                           PsiField searchField,
-                                           MethodConfig methodConfig,
-                                           List<CopyUsageInfo> results) {
+                                    PsiField searchField,
+                                    MethodConfig methodConfig,
+                                    List<CopyUsageInfo> results) {
         PsiClass searchContainingClass = searchField.getContainingClass();
         if (searchContainingClass == null) {
             return;

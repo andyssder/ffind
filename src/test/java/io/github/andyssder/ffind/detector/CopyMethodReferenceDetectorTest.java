@@ -1,7 +1,7 @@
 package io.github.andyssder.ffind.detector;
 
-import io.github.andyssder.ffind.model.MethodConfig;
 import com.intellij.psi.*;
+import io.github.andyssder.ffind.model.MethodConfig;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -9,14 +9,15 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
-public class MethodSignatureMatcherTest {
+public class CopyMethodReferenceDetectorTest {
 
     @Test
     public void shouldReturnTrueWhenAllConditionsMatch() {
         PsiMethod method = createMockMethod("com.example.MyService", "processData", "arg1", "arg2");
         MethodConfig config = createMockMethodConfig("com.example.MyService", "processData", List.of("arg1", "arg2"));
-        assertTrue(MethodSignatureMatcher.matches(method, config));
+        assertTrue(CopyMethodReferenceDetector.matches(method, config));
     }
 
     @Test
@@ -24,77 +25,52 @@ public class MethodSignatureMatcherTest {
         MethodConfig config = createMockMethodConfig("com.example.MyService", "processData", List.of("arg1", "arg2", "agr3"), true, false);
 
         PsiMethod method = createMockMethod("com.example.MyService", "processData", "arg1", "arg2", "agr3");
-        assertTrue(MethodSignatureMatcher.matches(method, config));
+        assertTrue(CopyMethodReferenceDetector.matches(method, config));
 
         method = createMockMethod("com.example.MyService", "processData", "arg1", "arg2", "agr3", "arg4", "agr5");
-        assertFalse(MethodSignatureMatcher.matches(method, config));
+        assertFalse(CopyMethodReferenceDetector.matches(method, config));
 
         method = createMockMethod("com.example.MyService", "processData", "arg1", "arg2");
-        assertFalse(MethodSignatureMatcher.matches(method, config));
+        assertFalse(CopyMethodReferenceDetector.matches(method, config));
 
         method = createMockMethod("com.example.MyService", "processData");
-        assertFalse(MethodSignatureMatcher.matches(method, config));
+        assertFalse(CopyMethodReferenceDetector.matches(method, config));
 
     }
 
     @Test
     public void shouldReturnFalseWhenMethodCannotResolve() {
         MethodConfig methodConfig = createMockMethodConfig("any", "any", List.of());
-        assertFalse(MethodSignatureMatcher.matches(null, methodConfig));
+        assertFalse(CopyMethodReferenceDetector.matches(null, methodConfig));
     }
 
     @Test
     public void shouldReturnFalseWhenNotMatch() {
         PsiMethod method = createMockMethod("com.example.MyService", "save", "arg1", "arg2", "arg3", "arg4");
         MethodConfig config = createMockMethodConfig("com.example.MyService", "save", Arrays.asList("arg1", "arg2", "agr3"));
-        assertFalse(MethodSignatureMatcher.matches(method, config));
+        assertFalse(CopyMethodReferenceDetector.matches(method, config));
     }
 
     @Test
     public void shouldReturnFalseWhenContainingClassIsNull() {
         MethodConfig methodConfig = createMockMethodConfig("any", "any", List.of());
         PsiMethod method = createMockMethod(null, "any");
-        assertFalse(MethodSignatureMatcher.matches(method, methodConfig));
+        assertFalse(CopyMethodReferenceDetector.matches(method, methodConfig));
     }
 
     @Test
     public void shouldReturnFalseWhenQualifiedNameIsBlank() {
         MethodConfig methodConfig = createMockMethodConfig("any", "any", List.of());
         PsiMethod method = createMockMethod("", "any");
-        assertFalse(MethodSignatureMatcher.matches(method, methodConfig));
+        assertFalse(CopyMethodReferenceDetector.matches(method, methodConfig));
     }
 
     @Test
     public void shouldHandleNullParamNames() {
         PsiMethod method = createMockMethod("com.example.MyService", "save", null, "arg2");
         MethodConfig config = createMockMethodConfig("com.example.MyService", "save", Arrays.asList(null, "arg2"));
-        assertTrue(MethodSignatureMatcher.matches(method, config));
+        assertTrue(CopyMethodReferenceDetector.matches(method, config));
     }
-
-//    @ParameterizedTest
-//    @MethodSource("mismatchScenarios")
-//    void shouldReturnFalseWhenAnyConditionFails(String className, String methodName, List<String> params, boolean expected) {
-//        PsiMethod method = createMockMethod("com.example.MyService", "processData", "arg1", "arg2");
-//        MethodConfig config = createMockMethodConfig(className, methodName, params);
-//        assertEquals(expected, MethodSignatureMatcher.matches(method, config));
-//    }
-//
-//    static Stream<Object[]> mismatchScenarios() {
-//        return Stream.of(
-//                new Object[]{
-//                        "com.example.WrongClass", "processData", List.of("arg1", "arg2"), false
-//                },
-//                new Object[]{
-//                        "com.example.MyService", "wrongMethod", List.of("arg1", "arg2"), false
-//                },
-//                new Object[]{
-//                        "com.example.MyService", "processData", List.of("arg2", "arg1"), false
-//                },
-//                new Object[]{
-//                        "com.example.MyService", "processData", List.of("arg1"), false
-//                }
-//        );
-//    }
 
     private PsiMethod createMockMethod(String className, String methodName, String... paramNames) {
         PsiMethod method = mock(PsiMethod.class);
