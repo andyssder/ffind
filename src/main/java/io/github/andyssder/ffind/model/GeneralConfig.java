@@ -6,7 +6,7 @@ public class GeneralConfig implements Serializable {
 
     private Long cacheTime = 0L;
 
-    private Boolean cacheEnable = true;
+    private Boolean cacheEnable = false;
 
     public GeneralConfig() {}
 
