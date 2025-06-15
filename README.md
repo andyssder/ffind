@@ -1,7 +1,5 @@
 # Find in Copy - IntelliJ IDEA Plugin
 
----
-
  #### 🔍 扩展IDEA的引用查找功能，检测隐藏在以下方法中的属性引用：
 
 - Spring的BeanUtil.copyProperties(source, target) (默认支持)
