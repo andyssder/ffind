@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.andyssder.ffind"
-version = "1.1.0"
+version = "1.1.1"
 
 repositories {
     mavenCentral()
@@ -28,8 +28,8 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "231"
-            untilBuild = "243.*"
+            sinceBuild = "222"
+            untilBuild = "252.*"
         }
     }
     pluginVerification {
