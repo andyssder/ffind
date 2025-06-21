@@ -9,7 +9,8 @@ public class CopyUsageInfoDetectorFactory {
 
     // init detectors
     private static final List<CopyUsageInfoDetector> detectors = Arrays.asList(
-            new FiledCopyUsageInfoDetector()
+            new FiledCopyUsageInfoDetector(),
+            new MethodCopyUsageInfoDetector()
     );
 
     /**

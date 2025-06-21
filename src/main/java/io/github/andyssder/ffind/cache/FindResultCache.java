@@ -1,13 +1,9 @@
 package io.github.andyssder.ffind.cache;
 
 import io.github.andyssder.ffind.model.idea.CopyUsageInfo;
-import com.intellij.openapi.application.ReadAction;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiField;
 import java.lang.ref.SoftReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class FindResultCache {
 
@@ -27,11 +23,10 @@ public class FindResultCache {
     /**
      * Returns cached find result  for the specified field.
      *
-     * @param field the field which user wants to find
+     * @param key cache key
      * @return cached result if exist or empty.
      */
-    public Optional<List<CopyUsageInfo>> getCachedResultByField(PsiField field) {
-        String key = generateKeyForField(field);
+    public Optional<List<CopyUsageInfo>> getCachedResul(String key) {
         SoftReference<CachedResult> value = cache.get(key);
         if (Objects.nonNull(value)) {
             CachedResult result = value.get();
@@ -42,14 +37,14 @@ public class FindResultCache {
         return Optional.empty();
     }
 
+
     /**
      * save find result in cache
-     * @param field the field which user wants to find
+     * @param key cache key
      * @param result find result
      * @param expireTime expire time in milliseconds
      */
-    public void updateCache(PsiField field, List<CopyUsageInfo> result, Long expireTime) {
-        String key = generateKeyForField(field);
+    public void updateCacheResult(String key, List<CopyUsageInfo> result, Long expireTime) {
         cache.put(key, new SoftReference<>(new CachedResult(result, expireTime)));
     }
 
@@ -58,22 +53,6 @@ public class FindResultCache {
      */
     public void clearCache() {
         cache.clear();
-    }
-
-    /**
-     * generate cache key for field: className#fieldName
-     * @param field the field which user wants to find
-     * @return cache key
-     */
-    private String generateKeyForField(PsiField field) {
-        AtomicReference<String> key = new AtomicReference<>();
-        ReadAction.compute(() -> {
-            PsiClass containingClass = field.getContainingClass();
-            String className = containingClass != null ? containingClass.getQualifiedName() : "Anonymous";
-            key.set(className + "#" + field.getName());
-            return true;
-        });
-        return key.get();
     }
 
     /**

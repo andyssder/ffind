@@ -35,8 +35,8 @@ public class FindResultCacheTest extends LightJavaCodeInsightFixtureTestCase {
     }
 
     public void testEmptyCache() {
-        PsiField testField = createTestField("TestClass", "testField");
-        Optional<List<CopyUsageInfo>> result = cache.getCachedResultByField(testField);
+        String emptyCacheKey = "emptyCacheKey";
+        Optional<List<CopyUsageInfo>> result = cache.getCachedResul(emptyCacheKey);
         assertFalse("Cache should be empty", result.isPresent());
     }
 
@@ -45,8 +45,9 @@ public class FindResultCacheTest extends LightJavaCodeInsightFixtureTestCase {
         List<CopyUsageInfo> testData = createTestUsageInfos(testField);
         long expireTime = 5000;
 
-        cache.updateCache(testField, testData, expireTime);
-        Optional<List<CopyUsageInfo>> result = cache.getCachedResultByField(testField);
+        String cacheKey = "cacheKey";
+        cache.updateCacheResult(cacheKey, testData, expireTime);
+        Optional<List<CopyUsageInfo>> result = cache.getCachedResul(cacheKey);
 
         assertTrue("Result should be present", result.isPresent());
         assertEquals("Should return correct data size", testData.size(), result.get().size());
@@ -55,41 +56,47 @@ public class FindResultCacheTest extends LightJavaCodeInsightFixtureTestCase {
             assertSame("Should return correct data", copyUsageInfo, result.get().get(i));
         }
 
-        PsiField anotherField = createTestField("AnotherClass", "anotherField");
-        Optional<List<CopyUsageInfo>> anotherResult = cache.getCachedResultByField(anotherField);
+        String anotherCacheKey = "anotherCacheKey";
+        Optional<List<CopyUsageInfo>> anotherResult = cache.getCachedResul(anotherCacheKey);
         assertFalse("Cache should be isolated by field", anotherResult.isPresent());
     }
 
     public void testCacheExpiration() throws InterruptedException {
         PsiField testField = createTestField("TestClass", "testField");
         List<CopyUsageInfo> testData = createTestUsageInfos(testField);
-        cache.updateCache(testField, testData, 100L);
+        String cacheKey = "cacheKey";
+        cache.updateCacheResult(cacheKey, testData, 100L);
 
-        Optional<List<CopyUsageInfo>> result = cache.getCachedResultByField(testField);
+        Optional<List<CopyUsageInfo>> result = cache.getCachedResul(cacheKey);
         assertTrue("Cache should be valid before expiration", result.isPresent());
 
         Thread.sleep(150);
 
-        Optional<List<CopyUsageInfo>> expiredResult = cache.getCachedResultByField(testField);
+        Optional<List<CopyUsageInfo>> expiredResult = cache.getCachedResul(cacheKey);
         assertFalse("Expired cache should be empty", expiredResult.isPresent());
     }
 
     public void testCacheClear() {
         PsiField testField = createTestField("TestClass", "testField");
         List<CopyUsageInfo> testFieldData = createTestUsageInfos(testField);
-        cache.updateCache(testField, testFieldData, 5000L);
+
+        String cacheKey = "cacheKey";
+        cache.updateCacheResult(cacheKey, testFieldData, 5000L);
         assertTrue("Test field cache should exist before clear",
-                cache.getCachedResultByField(testField).isPresent());
+                cache.getCachedResul(cacheKey).isPresent());
 
         PsiField anotherField = createTestField("AnotherClass", "anotherField");
         List<CopyUsageInfo> anotherFieldData = createTestUsageInfos(anotherField);
-        cache.updateCache(anotherField, anotherFieldData, 5000L);
+
+        String anotherCacheKey = "anotherCacheKey";
+        cache.updateCacheResult(anotherCacheKey, anotherFieldData, 5000L);
         assertTrue("Another field cache should exist before clear",
-                cache.getCachedResultByField(anotherField).isPresent());
+                cache.getCachedResul(anotherCacheKey).isPresent());
 
         cache.clearCache();
-        Optional<List<CopyUsageInfo>> result1 = cache.getCachedResultByField(testField);
-        Optional<List<CopyUsageInfo>> result2 = cache.getCachedResultByField(anotherField);
+
+        Optional<List<CopyUsageInfo>> result1 = cache.getCachedResul(cacheKey);
+        Optional<List<CopyUsageInfo>> result2 = cache.getCachedResul(anotherCacheKey);
 
         assertFalse("Test field cache should be cleared", result1.isPresent());
         assertFalse("Another field cache should be cleared", result2.isPresent());

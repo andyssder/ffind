@@ -16,6 +16,7 @@ import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 import static com.intellij.openapi.application.ApplicationManager.getApplication;
@@ -60,24 +61,21 @@ public class FiledCopyUsageInfoDetectorTest extends LightJavaCodeInsightFixtureT
         assertFalse("Should be disabled for non-PsiField", detector.isEnable(method));
     }
 
-    public void testFindCopyUsageInfoWhenNotField() {
-        PsiMethod method = createTestMethod("TestClass", "testMethod");
-        List<CopyUsageInfo> result = detector.findCopyUsageInfo(method, null);
-        assertTrue("Should return empty list for non-field", result.isEmpty());
-    }
-
     public void testFindCopyUsageInfoWithCacheHit() {
         GeneralConfig generalConfig = new GeneralConfig();
         generalConfig.setCacheEnable(true);
         when(generalSetting.getGeneralConfig()).thenReturn(generalConfig);
 
         PsiField field = createTestField("TestClass", "testField");
-        List<CopyUsageInfo> cachedData = createMockUsageInfos(field);
 
-        cache.updateCache(field, cachedData, 5000L);
+        PsiField anotherField = createTestField("AnotherTestClass", "anotherField");
+        List<CopyUsageInfo> anotherFieldUsages = createMockUsageInfos(anotherField);
+
+        String cacheKey = generateKeyForField(field);
+        cache.updateCacheResult(cacheKey, anotherFieldUsages, 5000L);
 
         List<CopyUsageInfo> result = detector.findCopyUsageInfo(field, null);
-        assertEquals("Should return cached data", cachedData, result);
+        assertEquals("Should return cached data", anotherFieldUsages, result);
     }
 
     public void testFindCopyUsageInfoWithNormalCopyMethod() {
@@ -172,6 +170,8 @@ public class FiledCopyUsageInfoDetectorTest extends LightJavaCodeInsightFixtureT
 
     }
 
+    /****************************private method****************************/
+
     @NotNull
     private PsiField createTestField(String className, String fieldName) {
         return PsiTestUtil.createTestFieldWithSelfReference(myFixture, className, fieldName);
@@ -193,110 +193,21 @@ public class FiledCopyUsageInfoDetectorTest extends LightJavaCodeInsightFixtureT
 
     @NotNull
     private CopyUsageInfo createRealUsageInfos(String mockClassName, PsiField testField, ReferenceType referenceType, MethodConfig methodConfig, String... strings) {
-
-        assertTrue(ReferenceType.INDIRECT_READ.equals(referenceType) || ReferenceType.INDIRECT_WRITE.equals(referenceType));
-
-        PsiClass testClass = testField.getContainingClass();
-        assertNotNull(testClass);
-        String testClassName = testClass.getQualifiedName();
-        String testClassShortName = testClass.getName();
-
-        StringBuilder classBuilder = new StringBuilder();
-        classBuilder.append("import ").append(testClassName).append(";\n");
-        classBuilder.append("import ").append(methodConfig.getClassName()).append(";\n\n");
-        classBuilder.append("public class ").append(mockClassName).append(" {\n");
-        classBuilder.append("   public void testMethod() {\n");
-        classBuilder.append("       ").append(testClassShortName).append(" test = new ").append(testClassShortName).append("();\n");
-
-        StringBuilder methodCallBuilder = new StringBuilder();
-        methodCallBuilder.append(methodConfig.getClassName()).append(".").append(methodConfig.getMethodName()).append("(");
-
-        for (int i = 0; i < methodConfig.getParamNames().size(); i++) {
-            boolean isExcludeOrIncludeFieldEnable = methodConfig.getExcludeFiledParamEnable() || methodConfig.getIncludeFieldParamEnable();
-            boolean isLastIndex = i == methodConfig.getParamNames().size() - 1;
-
-            if (methodConfig.getSourceParamIndex() == i && ReferenceType.INDIRECT_READ.equals(referenceType)) {
-                methodCallBuilder.append("test");
-            } else if (methodConfig.getTargetParamIndex() == i && ReferenceType.INDIRECT_WRITE.equals(referenceType)) {
-                methodCallBuilder.append("test");
-            } else if (isExcludeOrIncludeFieldEnable && isLastIndex){
-                if (strings != null && strings.length != 0) {
-                    for (String item : strings) {
-                        methodCallBuilder.append("\"").append(item).append("\"").append(",");
-                    }
-                    // add a empty string so that idea can identify variable argument, don't know why
-                    methodCallBuilder.append("\"\"");
-                }
-            } else {
-                methodCallBuilder.append("null");
-            }
-            methodCallBuilder.append(isLastIndex? ");\n" : ",");
-        }
-        classBuilder.append(methodCallBuilder).append("   }\n").append("}");
-
-        myFixture.configureByText(mockClassName + ".java", classBuilder.toString());
-        myFixture.doHighlighting();
-
-        // 查找方法调用表达式
-        PsiMethodCallExpression methodCallExpression = myFixture.findElementByText(methodCallBuilder.toString(), PsiMethodCallExpression.class);
-
-        assertNotNull(methodCallExpression.resolveMethod());
-
-        return new CopyUsageInfo(new MethodCallReference(methodCallExpression, testField), referenceType);
+        return PsiTestUtil.createRealUsageInfos(myFixture, mockClassName, testField, referenceType, methodConfig, strings);
     }
 
     private void createCopyClasses(List<MethodConfig> methodConfigs) {
-        if (methodConfigs == null || methodConfigs.isEmpty()) {
-            return;
-        }
-
-        Map<String, List<MethodConfig>> classMethodMap = new HashMap<>();
-        for (MethodConfig config : methodConfigs) {
-            String className = config.getClassName();
-            classMethodMap.computeIfAbsent(className, k -> new ArrayList<>()).add(config);
-        }
-
-        for (Map.Entry<String, List<MethodConfig>> entry : classMethodMap.entrySet()) {
-            String className = entry.getKey();
-            List<MethodConfig> classConfigs = entry.getValue();
-
-            StringBuilder classBuilder = new StringBuilder();
-            classBuilder.append("public class ").append(className).append(" {\n");
-
-            for (MethodConfig config : classConfigs) {
-                classBuilder.append(generateCopyMethodSignature(config)).append(" {}\n");
-            }
-
-            classBuilder.append("}");
-
-            myFixture.configureByText(className + ".java", classBuilder.toString());
-            myFixture.doHighlighting();
-        }
+        PsiTestUtil.createCopyClasses(myFixture, methodConfigs);
     }
 
-    private String generateCopyMethodSignature(MethodConfig config) {
-        StringBuilder signature = new StringBuilder();
-        signature.append("public static void ")
-                .append(config.getMethodName())
-                .append("(");
-
-        List<String> params = new ArrayList<>();
-        for (int i = 0; i < config.getParamNames().size(); i++) {
-            String paramType = "Object";
-
-            boolean isExcludeOrIncludeFieldEnable = config.getExcludeFiledParamEnable() || config.getIncludeFieldParamEnable();
-            if (isExcludeOrIncludeFieldEnable && i == config.getParamNames().size() - 1) {
-                // the last one is variable argument
-                paramType = "String...";
-            }
-
-            params.add(paramType + " " + config.getParamNames().get(i));
+    private String generateKeyForField(PsiField field) {
+        try {
+            Method method = FiledCopyUsageInfoDetector.class.getDeclaredMethod("generateKeyForField", PsiField.class);
+            method.setAccessible(true);
+            return (String) method.invoke(detector, field);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke generateKeyForField", e);
         }
-
-        signature.append(String.join(", ", params));
-        signature.append(")");
-
-        return signature.toString();
     }
 
 }
