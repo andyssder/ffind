@@ -1,3 +1,7 @@
+<h3>[1.2.0] - 2025-06-22</h3>
+<ul>
+<li>Added support for setter/getter methods"</li>
+</ul>
 <h3>[1.1.1] - 2025-06-16</h3>
 <ul>
 <li>Supports more versions</li>
